@@ -9,7 +9,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20091108132558) do
+ActiveRecord::Schema.define(:version => 20091117155715) do
 
   create_table "albums", :force => true do |t|
     t.string   "type"
@@ -126,6 +126,13 @@ ActiveRecord::Schema.define(:version => 20091108132558) do
     t.integer  "posts_count",   :default => 0
     t.integer  "guild_id"
     t.integer  "last_topic_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "friend_guesses", :force => true do |t|
+    t.integer  "user_id"
+    t.integer  "guess_id"
     t.datetime "created_at"
     t.datetime "updated_at"
   end

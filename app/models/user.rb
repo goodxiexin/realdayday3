@@ -29,6 +29,147 @@ class User < ActiveRecord::Base
 		!game_attentions.find_by_game_id(game.id).nil?
   end
 
+  has_many :friend_guesses,
+           :dependent => :destroy
+
+  def has_enough_friend_guesses
+    self.friend_guesses.count > 40
+  end
+
+  has_many :guessed_friends,
+           :class_name => 'User',
+           :foreign_key => 'guess_id',
+           :through => :friend_guesses,
+           :uniq => true
+
+
+  def destroy_existing_guesses
+    unless self.friend_guesses.empty?
+      FriendGuess.destroy_all(:user_id => self.id)
+    end
+  end
+
+  def collect_friend_guesses(guessed_users)
+
+    # go through all events find people that attending the same event as the current user
+    # those users are most like to be friend with current user
+    # event is not selected randomly because each new event is very likely bring people together
+    self.events.each do |event|
+      catch(:done) do
+        event.confirmed_participants.each do |user|
+          unless (self.id == user.id or self.has_potential_friend?(user))
+            guessed_users[user.id] += 1
+            throw :done if (guessed_users.size >= 200)
+          end
+        end
+      end
+    end
+
+    # if friend's suggestion did not collect 200 samples from events
+    # guild is considered for collecting friends' suggestion samples
+    unless (guessed_users.size >= 200)
+      self.guilds.each do |guild|
+        catch(:done0) do
+          guild.all_members.each do |user|
+            unless (self.id == user.id or self.has_potential_friend?(user))
+              guessed_user[user.id] += 1
+              throw :done0 if (guessed_users.size >= 200)
+            end
+          end
+        end
+      end
+    end
+
+    # if events and guilds did no collect enough users then friends' friends are not collected.
+    # otherwise, friends' friends are collected for consideration
+    # friends' friends are selected randomly to avoid same users are used every time
+    unless (guessed_users.size >= 200)
+      catch(:done1) do 
+        self.friends.each do |friend|
+          @n = friend.friends.size
+          @n.times do |i|
+            @user_guess = friend.friends[rand(@n)]
+            unless (self.id == @user_guess.id or self.has_potential_friend?(@user_guess))
+              guessed_users[@user_guess.id] += 2
+              throw :done1 if (guessed_users.size >= 200)
+            end
+          end
+        end
+      end
+    end
+
+    # if previous steps did not get enough users, all users in same servers are considered
+    unless (guessed_users.size >= 200)
+      catch(:done2) do
+        self.characters.each do |each_character|
+          @current_characters = each_character.server.game_characters.sort_by{rand}
+          @current_characters.each do |other_character|
+            unless (self.id == other_character.user.id or self.has_potential_friend?(other_character.user))
+              guessed_users[other_character.user.id] += 1
+              throw :done2 if (guessed_users.size >= 200)
+            end
+          end
+        end
+      end 
+    end
+
+    # At this stage, every user is needed for this engine
+    # this only occur when user does not provide enough info or we have not get enough users
+    unless (guessed_users.size >= 200)
+      catch(:done3) do
+        User.all.each do |each_user|
+          guessed_users[each_user.id] += 1
+          throw :done3 if (guessed_users.size >= 200)
+        end
+      end
+    end
+  end
+
+  def calculating_final_scores(guessed_users, suggested_users)
+    guessed_users.each_key do |user_id|
+      this_user = User.find(user_id)
+
+      suggested_users[user_id] += 2 * self.common_friends_with(this_user).count
+
+      suggested_users[user_id] += 5 * self.common_guilds_with(this_user).count
+ 
+      suggested_users[user_id] += 5 * self.common_events_with(this_user).count
+
+      this_user.characters do |each_game_character|
+        self.characters do |this_game_character|
+          if (this_game_character.server.id == each_game_character.server.id)
+            suggested_users[user_id] +=2
+          end
+        end
+      end
+    end
+  end
+
+  # this method has three main part
+  # first part is to destroy all existing samples
+  # second part is to collect 200 samples
+  # third part is to calculate sample quality
+  def create_friend_guesses
+    self.destroy_existing_guesses
+
+    @guessed_users = {}
+    @guessed_users.default = 0
+    self.collect_friend_guesses(@guessed_users)
+
+    @suggested_users = @guessed_users
+    @suggested_users.each_key do |user_id|
+      @suggested_users[user_id] = 1
+    end
+    self.calculating_final_scores(@guessed_users, @suggested_users)
+
+    @min_num = [50, @suggested_users.size].min
+    @final_suggestions = @suggested_users.sort{|a,b| a[1] <=> b[1]}[0..@min_num]
+    
+    @final_suggestions.each do |element|
+      self.friend_guesses.create(:guess_id => element[0])
+    end
+  end
+
   has_many :game_attentions
 
 	has_many :interested_games, :through => :game_attentions, :source => :game
@@ -52,6 +193,10 @@ class User < ActiveRecord::Base
   has_many :friendships, :dependent => :destroy, :conditions => {:status => 1}
 
 	has_many :friends, :through => :friendships, :source => 'friend', :order => 'login ASC'
+
+  def has_potential_friend? user
+     all_friendships.find(:first, :conditions => {:friend_id => user.id}) or Friendship.find(:first, :conditions => {:friend_id => self.id, :user_id => user.id})
+  end
 
   def has_friend? user
 		all_friendships.find(:first, :conditions => {:friend_id => user.id, :status => 1})
@@ -77,6 +222,11 @@ class User < ActiveRecord::Base
 
   # game
   has_many :characters, :class_name => 'GameCharacter', :dependent => :destroy
+
+  has_many :currently_playing_game_characters,
+           :class_name => 'GameCharacter',                                    
+           :conditions => { :playing => true },                               
+           :order => 'created_at DESC' 
 
   has_many :games, :through => :characters, :uniq => true
 
@@ -115,6 +265,10 @@ class User < ActiveRecord::Base
 
 	end
 
+	def common_events_with user
+		events & user.events
+	end
+
   # polls
   has_many :votes, :foreign_key => 'voter_id'
 
@@ -131,8 +285,12 @@ class User < ActiveRecord::Base
 
 		user.has_many :participated_guilds, :conditions => "memberships.status = 4 or memberships.status = 5"
 
-		user.has_many :all_guilds, :conditions => "membership.status IN (3,4,5)"
+		user.has_many :all_guilds, :conditions => "memberships.status IN (3,4,5)"
 
+	end
+
+	def common_guilds_with user
+        all_guilds & user.all_guilds
 	end
 
 	# invitation and requests

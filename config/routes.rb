@@ -42,6 +42,8 @@ ActionController::Routing::Routes.draw do |map|
 
   map.resource :password_setting, :controller => 'setting/password_setting'
 
+  map.resources :friend_guesses, :collection => {:show_all => :get, :show_all_server_characters => :get}
+
   #
   # games
   #
