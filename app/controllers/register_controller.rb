@@ -6,6 +6,7 @@ class RegisterController < ApplicationController
 	def edit_character
 		@id = params[:id].to_i
 		@character = GameCharacter.new(params[:character])
+        @rating = params[:rating].to_i
 	end
 
   def validates_email_uniqueness

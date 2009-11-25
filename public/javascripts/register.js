@@ -1,11 +1,12 @@
 CharacterInfo = Class.create({
 	
-	initialize: function(id, name, level, game_id, game, area_id, area, server_id, server, profession_id, profession, race_id, race){
+	initialize: function(id, name, level, game_id, game, rating, area_id, area, server_id, server, profession_id, profession, race_id, race){
 		this.id = id;
 		this.name = name;
 		this.level = level;
 		this.game_id = game_id;
 		this.game = game;
+        this.rating = rating;
 		this.area_id = area_id;
 		this.area = area;
 		this.server_id = server_id;
@@ -16,11 +17,17 @@ CharacterInfo = Class.create({
 		this.race = race;
 	},
 
+    update_game_rate: function(rating) {
+        this.rating = rating;
+    },
+
 	name: function() { return this.name; },
 
 	level: function() { return this.level;},
 
 	game_id: function() { return this.game_id;},
+
+    rating: function() {return this.rating;},
 
 	area_id: function() { return this.area_id;},
 
@@ -38,11 +45,18 @@ CharacterInfo = Class.create({
 		html += "<a href=# onclick='register_manager.remove_character(" + this.id +")'>删除</a>";
 		html += "<div><p>等级:" + this.level + "</p>";
 		html += "<p>游戏:" + this.game + "</p>";
+        html += "<ul class='star-rating'>";
+        html += "<li class='current-rating' style='width:"+ (this.rating * 30) + "px;'>";
+        html += "Currently"+ this.rating + "/5 Stars.";
+        html += "</li>"
+        html += "</ul>"
 		if(this.area != null)
 			html += "<p>服务区:" + this.area + "</p>";
 		html += "<p>服务器:" + this.server + "</p>";
-		html += "<p>职业:" + this.profession + "</p>";
-		html += "<p>种族:" + this.race + "</p>";
+        if (this.profession_id != null)
+		    html += "<p>种族:" + this.race + "</p>";
+        if (this.race_id != null)
+		    html += "<p>职业:" + this.profession + "</p>";
 		html += "</div></li>";
 		return html;
 	},
@@ -50,7 +64,8 @@ CharacterInfo = Class.create({
 	to_hash: function(){
 		return {
 			'id'	: this.id,
-			'character[name]'			: this.name,
+            'rating'    : this.rating,
+			'character[name]'		: this.name,
 			'character[level]'		:	this.level,
 			'character[game_id]'	:	this.game_id,
 			'character[area_id]'	:	this.area_id,
@@ -77,6 +92,8 @@ RegisterManager = Class.create({
 		this.password_confirmation = $('user_password_confirmation');
 		this.character_info = $('character_info');
 		this.characters = new Hash();
+        this.character_game = new Hash(); //hash for character game relation
+        this.game_rate = new Hash(); //hash for game and rate
 		this.character_id = 0;
 		this.loading_image = new Image();
 		this.loading_image.src = '/images/loading.gif';
@@ -214,14 +231,6 @@ RegisterManager = Class.create({
     $('character_server_id').innerHTML = html;
   },
 
-  setup_profession_info: function(professions){
-    var html = '';
-    for(var i=0;i<professions.length;i++){
-      html += "<option value='" + professions[i].game_profession.id + "'>" + professions[i].game_profession.name + "</option>";
-    }
-    $('character_profession_id').innerHTML = html;
-  },
-
   setup_race_info: function(races){
     var html = '';
     for(var i=0;i<races.length;i++){
@@ -230,24 +239,49 @@ RegisterManager = Class.create({
     $('character_race_id').innerHTML = html;
   },
 
-	game_onchange: function(){
-    new Ajax.Request('/games/' + $('character_game_id').value + '/game_details', {
-      method: 'get',
-      onSuccess: function(transport){
-        var details = transport.responseText.evalJSON();
-        if(!details.no_areas){
-					this.no_areas = false;
-          this.setup_area_info(details.areas);
-          this.area_onchange();
-        }else{
-					this.no_areas = true;
-          this.setup_server_info(details.servers);
-        }
-        this.setup_profession_info(details.professions);
-        this.setup_race_info(details.races);
-      }.bind(this)
-    });
+  setup_profession_info: function(professions){
+    var html = '';
+    for(var i=0;i<professions.length;i++){
+      html += "<option value='" + professions[i].game_profession.id + "'>" + professions[i].game_profession.name + "</option>";
+    }
+    $('character_profession_id').innerHTML = html;
   },
+
+  setup_rating_info: function(rating){
+	    $('current_rate').innerHTML = "<li class='current-rating' style='width:"+ rating*30 +"px;'> Currently "+ rating +"/5 Stars.</li>";
+        $('star_value').innerHTML = "<input id='game_rate' type='hidden' value='"+ rating +"' name='game_rate'/>";
+  },
+
+    reset_area_info: function(){
+        $('character_area_id').innerHTML = '';
+    },
+
+    reset_server_info: function(){
+        $('character_server_id').innerHTML = '';
+    },
+
+	game_onchange: function(){
+		new Ajax.Request('/games/' + $('character_game_id').value + '/game_details', {
+			method: 'get',
+			onSuccess: function(transport){
+				this.details = transport.responseText.evalJSON();
+                if (this.details.no_servers){
+                    this.reset_area_info();
+                    this.reset_server_info();
+				}else if(!this.details.no_areas){
+					this.setup_area_info(this.details.areas);
+					this.area_onchange();
+				}else{
+                    this.reset_area_info();
+					this.setup_server_info(this.details.servers);
+				}
+                var rating = this.game_rate.get($('character_game_id').value);
+                this.setup_rating_info(rating);
+				this.setup_profession_info(this.details.professions);
+				this.setup_race_info(this.details.races);
+			}.bind(this)
+		});
+	},
 
   area_onchange: function(){
     new Ajax.Request('/games/' + $('character_game_id').value + '/area_details?area_id=' + $('character_area_id').value, {
@@ -259,7 +293,7 @@ RegisterManager = Class.create({
     });
   },
 
-	validate_character_info: function(){
+	validate_character_info: function(new_data){
 		$('character_name_info').innerHTML = '';
 		$('character_level_info').innerHTML = '';
 		$('character_game_info').innerHTML = '';
@@ -271,52 +305,40 @@ RegisterManager = Class.create({
 		var name = $('character_name').value;
 		var info = $('character_name_info');
 		if(name == ''){
-			info.innerHTML = '不能为空';
+			info.innerHTML = '人物昵称应该有的吧';
 			return false;
 		}
 
 		var level = $('character_level').value;
 		info = $('character_level_info');
 		if(level.value == ''){
-			info.innerHTML = '不能为空';
-			return false;
-		}else{
-			if(parseInt(level)){
-			}else{
-				info.innerHTML = '等级应该是个整数';
-				return false;
-			}
-		}
-
-		var server_id = $('character_server_id').value;
-		info = $('character_server_info');
-	  if(server_id == '---'){
-			info.innerHTML = '不能为空';
+			info.innerHTML = '等级不能不添啊';
 			return false;
 		}
 
-		race_id = $('character_race_id').value;
-		info = $('character_race_info');
-		if(race_id == '---'){
-			info.innerHTML = '不能为空';
-			return false;
-		}
+        if($('character_game_id').value == ''){
+            $('character_game_info') = '没有选择游戏，如有问题，请看提示';
+            return false;
+        }
 
-		profession_id = $('character_profession_id').value;
-		info = $('character_profession_info');
-	  if(profession_id == '---'){
-			info.innerHTML = '不能为空';
-			return false;
-		}
-
-		if(!this.no_areas){
-			area_id = $('character_area_id').value;
-			info = $('character_area_info');
-			if(area_id == '---'){
-				info.innerHTML = '不能为空';
-				return false;
-			}
-		}
+        if (new_data){
+          if(this.details.no_servers){
+            tip("由于游戏数量庞大，很多游戏已经停服，我们没有把所有游戏统计完成。这个游戏的资料就还不完全，请您在左边的意见／建议中告诉我们您所在游戏的所在服务器，我们会以最快速度为您添加。对您带来得不便，我们道歉。");
+            return false;
+          }
+          if(!this.details.no_areas && $('character_area_id').value == ''){
+            info.innerHTML = '没有选择区域，如有问题，请看提示';
+            return false;
+          }
+          if(!this.details.no_races && $('character_race_id').value == ''){
+            info.innerHTML = '没有选择种族';
+            return false;
+          }
+          if(!this.details.no_professions && $('character_profession_id').value == ''){
+            info.innerHTML = '没有选择职业';
+            return false;
+          }
+        }
 
 		return true;  
 	},
@@ -351,13 +373,14 @@ RegisterManager = Class.create({
 	},
 
 	create_character: function(){
-		if(this.validate_character_info()){
+		if(this.validate_character_info(true)){
 			var character_info = new CharacterInfo(
       this.character_id,
       $('character_name').value,
       $('character_level').value,
       $('character_game_id').value,
       this.selected_text($('character_game_id')),
+      $('game_rate').value,
       $('character_area_id').value,
       this.selected_text($('character_area_id')),
       $('character_server_id').value,
@@ -366,9 +389,22 @@ RegisterManager = Class.create({
       this.selected_text($('character_profession_id')),
       $('character_race_id').value,
       this.selected_text($('character_race_id')));
+            var game_rating = $('game_rate').value;
+            var current_game_id = $('character_game_id').value;
+            this.game_rate.set(current_game_id, game_rating);
+			this.character_info.innerHTML = this.old_character;
+            var temp_chrs = this.characters;
+            this.character_game.each(function(cg){
+                if (cg.value == current_game_id){
+                    var char_id = cg.key;
+                    var current_character = temp_chrs.get(char_id);
+                    current_character.update_game_rate(game_rating);
+			        Element.replace($('character_' + char_id), current_character.to_html());
+                }
+            });
+            this.character_game.set(character_info.id,  current_game_id);
 			this.characters.set(character_info.id, character_info);
 			this.character_id += 1;
-			this.character_info.innerHTML = this.old_character;
 			Element.insert($('characters'), {top: character_info.to_html()});
 		}
 	},
@@ -391,13 +427,14 @@ RegisterManager = Class.create({
   },
 
 	update_character: function(character_id){
-    if(this.validate_character_info()){
+    if(this.validate_character_info(false)){
 			var character_info = new CharacterInfo(
       this.character_id,
       $('character_name').value,
       $('character_level').value,
 			$('character_game_id').value,
       this.selected_text($('character_game_id')),
+      $('game_rate').value,
 			$('character_area_id').value,
       this.selected_text($('character_area_id')),
 			$('character_server_id').value,
@@ -406,20 +443,33 @@ RegisterManager = Class.create({
       this.selected_text($('character_profession_id')),
 			$('character_race_id').value,
       this.selected_text($('character_race_id')));
+            this.character_game.set(character_info.id,  $('character_game_id').value);
 			this.characters.set(character_id, character_info);
 			this.character_info.innerHTML = this.old_character;
-			Element.replace($('character_' + character_id), character_info.to_html());
+            this.game_rate.set($('character_game_id').value,$('game_rate').value);
+            var changed_game_id = this.character_game.get(character_id);
+            this.character_game.each(function(cg){
+                if (cg.value == changed_game_id){
+                    var char_id = cg.key;
+                    var current_character = this.characters.get(char_id);
+                    current_character.update_game_rate($('game_rate').value);
+			        Element.replace($('character_' + character_id), current_character.to_html());
+                }
+            });
 		}
   },
 
+//  game-rate relation is hard to deal with when a character has been removed
+//  It is ignored for now.
 	remove_character: function(character_id){
 		this.characters.unset(character_id);
+        this.character_game.unset(character_id);
 		$('character_' + character_id).remove();
 	},
 
 	submit: function(){
 		if(!this.validate_login()) return; 
-		if(!this.validate_email()) return;
+//		if(!this.validate_email()) return;
 		if(!this.validate_password()) return;
 		if(!this.validate_password_confirmation()) return;
 
@@ -440,6 +490,10 @@ RegisterManager = Class.create({
 			params += 'characters[][profession_id]=' + info.profession_id+ '&';
 			params += 'characters[][race_id]=' + info.race_id+ '&';
 		});
+        this.game_rate.each(function(gr){
+            params += 'rating[rateable_id]=' + gr.key + '&';
+            params += 'rating[rating]=' + gr.value + '&';
+        });
 		new Ajax.Request('/users', {method: 'post', parameters: params});	
 	}
 

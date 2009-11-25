@@ -1,0 +1,80 @@
+<html>
+<head>
+  <link href="/stylesheets/root.css?1259154414" media="screen" rel="stylesheet" type="text/css" />
+  <link href="/stylesheets/facebox.css?1258468112" media="screen" rel="stylesheet" type="text/css" />
+  <script src="/javascripts/prototype.js?1258468110" type="text/javascript"></script>
+<script src="/javascripts/effects.js?1258468110" type="text/javascript"></script>
+<script src="/javascripts/dragdrop.js?1258468110" type="text/javascript"></script>
+<script src="/javascripts/controls.js?1258468110" type="text/javascript"></script>
+<script src="/javascripts/application.js?1258468110" type="text/javascript"></script>
+  <script src="/javascripts/register.js?1259164055" type="text/javascript"></script>
+</head>
+<body>
+  <div id="container">
+　　<div id="header">
+			<div id='menu'>
+				<a href="http://localhost:3000/signup">register</a> |
+				<a href="http://localhost:3000/login">login</a> |
+				<a href="#" onclick="bookmark(); return false;">bookmark</a> |
+				<a href="#" onclick="homepage(); return false;">homepage</a> |
+				<a href="/users/new">help</a>
+			</div>
+　　</div>
+    <div id='containter'>
+　　  <div id="left">
+                      </div>
+　    <div id="middle">
+<form action="/users/new" id="register_form" method="post"><div style="margin:0;padding:0"><input name="authenticity_token" type="hidden" value="RRvWqHi91t9Zk/Wobjao5KMUehjWDjUjXMmLG7G8tjc=" /></div><p>
+  <label>Login</label><br/>
+  <input id="user_login" name="user[login]" onblur="register_manager.validate_login()" onfocus="register_manager.show_login_requirement();" size="30" type="text" />
+  <a id='login_info'></a>
+</p>
+
+<p>
+  <label>Email</label><br/>
+  <input id="user_email" name="user[email]" onblur="register_manager.validate_email()" onfocus="register_manager.show_email_requirement();" size="30" type="text" />
+  <a id='email_info'></a>
+</p>
+
+<p>
+  <input id="user_gender_male" name="user[gender]" type="radio" value="male" /> male
+  <input id="user_gender_female" name="user[gender]" type="radio" value="female" /> female
+</p>
+
+<p>
+  <label for="password">Password</label><br/>
+  <input id="user_password" name="user[password]" onblur="register_manager.validate_password()" onfocus="register_manager.show_password_requirement();" size="30" type="password" />
+  <a id='password_info'></a>
+</p>
+
+<p>
+  <label for="password_confirmation">Confirm Password</label><br/>
+  <input id="user_password_confirmation" name="user[password_confirmation]" onblur="register_manager.validate_password_confirmation()" onclick="register_manager.show_password_confirm_requirement()" size="30" type="password" />
+  <a id='password_confirmation_info'></a>
+</p>
+
+<p> Game Characters: </p>
+<h4>游戏信息, 你必须添加你玩过的游戏角色（至少一个）以完成注册</h4>
+<div id='character_info'>
+<a href="#" onclick="register_manager.new_character();; return false;">添加游戏角色</a>
+  <ul id='characters'>
+  </ul>
+</div>
+</form>
+<a href="#" onclick="register_manager.submit(); return false;">注册</a>
+
+<script type="text/javascript">
+//<![CDATA[
+
+  var register_manager = new RegisterManager();
+
+//]]>
+</script>
+
+		  </div>
+    </div>
+　　<div id="footer">
+      Dayday3 Group: xiahong gao, xin xie
+　　</div>
+</div>
+</body>

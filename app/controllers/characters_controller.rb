@@ -11,7 +11,7 @@ class CharactersController < ApplicationController
 		@game.ratings.create(:rating => params[:game_rate], :user_id => current_user.id)
 		@character = current_user.characters.build(params[:character])
 		if @character.save
-			render :partial => 'character', :object => @character
+			render :partial => 'character', :collection => current_user.characters
 		else
 			render :action => 'new'
 		end
@@ -23,7 +23,7 @@ class CharactersController < ApplicationController
 	def update
 		@rating.update_attribute('rating', params[:game_rate])
 		if @character.update_attributes(params[:character])
-			render :partial => 'character', :object => @character
+			render :partial => 'character', :collection => current_user.characters
 		else
 			render :action => 'edit'
 		end

@@ -202,8 +202,7 @@ ProfileManager = Class.create({
 				method: 'post',
 				parameters: $('character_info_form').serialize(),
 				onSuccess: function(transport){
-					this.ginfo_body.innerHTML = this.old_ginfo;
-					Element.insert($('characters'), {top: transport.responseText});
+					this.ginfo_body.innerHTML = transport.responseText;
 				}.bind(this)
 			});
 		}
@@ -234,15 +233,16 @@ ProfileManager = Class.create({
 
   validate_character_info: function(new_data){
   if($('character_name').value == ''){
-    error("人物昵称不能不添呀");
+    error("人物昵称应该有的吧");
     return false;
   }
   if($('character_level').value == ''){
     error('等级不能不添啊');
-    return false
+    return false;
   }
   if($('character_game_id').value == ''){
     error('没有选择游戏，如有问题，请看提示');
+    return false;
   }
   if($('character_server_id').value == ''){
     error('没有选择服务器，如有问题，请看提示');
@@ -277,8 +277,7 @@ ProfileManager = Class.create({
         onSuccess: function(transport){
 					this.character_forms.unset(character_id);
           //this.ginfo_head
-					this.ginfo_body.innerHTML = this.old_ginfo;
-					Element.replace($('character_' + character_id), transport.responseText);
+					this.ginfo_body.innerHTML = transport.responseText;
         }.bind(this)
       });
     }
