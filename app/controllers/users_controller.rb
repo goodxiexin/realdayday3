@@ -20,9 +20,12 @@ class UsersController < ApplicationController
 		end
     @user = User.new(params[:user])
     @user.save!
-    params[:cs].each do |args|
-      @user.game_characters.create(args)
-    end unless params[:cs].blank?
+    params[:characters].each do |args|
+      @user.characters.create(args)
+    end unless params[:characters].blank?
+    params[:rating].each do |args|
+      Rating.create(args.merge({:rateable_type => 'Game', :user_id => @user.id}))
+    end unless params[:rating].blank?
     flash[:notice] = "Thanks for signing up! Please check your email to activate your account before you log in"
     render :update do |page|
       page.redirect_to '/login'

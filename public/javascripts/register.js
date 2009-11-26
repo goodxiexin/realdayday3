@@ -150,13 +150,14 @@ RegisterManager = Class.create({
 		if(this.email.value.match(/^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/)){
 			this.load(this.email_info);
 			new Ajax.Request('/register/validates_email_uniqueness?email='+encodeURIComponent(this.email.value), {
+              method: 'get',
 			  onSuccess: function(transport){
 			    if(transport.responseText == 'yes'){
 			      this.email_info.innerHTML = '合法';
 			    }else{
 			      this.email_info.innerHTML = '该邮箱已被注册';
 			    }
-				}
+				}.bind(this)
 			});
 			return true;
 		}else{
@@ -443,17 +444,19 @@ RegisterManager = Class.create({
       this.selected_text($('character_profession_id')),
 			$('character_race_id').value,
       this.selected_text($('character_race_id')));
-            this.character_game.set(character_info.id,  $('character_game_id').value);
+            var game_rating = $('game_rate').value;
+            var current_game_id = $('character_game_id').value;
+            this.character_game.set(character_info.id, current_game_id);
 			this.characters.set(character_id, character_info);
 			this.character_info.innerHTML = this.old_character;
-            this.game_rate.set($('character_game_id').value,$('game_rate').value);
-            var changed_game_id = this.character_game.get(character_id);
+            this.game_rate.set(current_game_id, game_rating);
+            var temp_chrs = this.characters;
             this.character_game.each(function(cg){
-                if (cg.value == changed_game_id){
+                if (cg.value == current_game_id){
                     var char_id = cg.key;
-                    var current_character = this.characters.get(char_id);
-                    current_character.update_game_rate($('game_rate').value);
-			        Element.replace($('character_' + character_id), current_character.to_html());
+                    var current_character = temp_chrs.get(char_id);
+                    current_character.update_game_rate(game_rating);
+			        Element.replace($('character_' + char_id), current_character.to_html());
                 }
             });
 		}
@@ -469,7 +472,7 @@ RegisterManager = Class.create({
 
 	submit: function(){
 		if(!this.validate_login()) return; 
-//		if(!this.validate_email()) return;
+		if(!this.validate_email()) return;
 		if(!this.validate_password()) return;
 		if(!this.validate_password_confirmation()) return;
 
@@ -491,8 +494,8 @@ RegisterManager = Class.create({
 			params += 'characters[][race_id]=' + info.race_id+ '&';
 		});
         this.game_rate.each(function(gr){
-            params += 'rating[rateable_id]=' + gr.key + '&';
-            params += 'rating[rating]=' + gr.value + '&';
+            params += 'rating[][rateable_id]=' + gr.key + '&';
+            params += 'rating[][rating]=' + gr.value + '&';
         });
 		new Ajax.Request('/users', {method: 'post', parameters: params});	
 	}

@@ -7,7 +7,8 @@
 <script src="/javascripts/dragdrop.js?1258468110" type="text/javascript"></script>
 <script src="/javascripts/controls.js?1258468110" type="text/javascript"></script>
 <script src="/javascripts/application.js?1258468110" type="text/javascript"></script>
-  <script src="/javascripts/register.js?1259164055" type="text/javascript"></script>
+  <script src="/javascripts/register.js?1259229809" type="text/javascript"></script>
+  <script src="/javascripts/facebox.js?1258468110" type="text/javascript"></script>
 </head>
 <body>
   <div id="container">
@@ -22,9 +23,11 @@
 　　</div>
     <div id='containter'>
 　　  <div id="left">
+        
+          <div id='notice'>Thanks for signing up! Please check your email to activate your account before you log in</div>
                       </div>
 　    <div id="middle">
-<form action="/users/new" id="register_form" method="post"><div style="margin:0;padding:0"><input name="authenticity_token" type="hidden" value="RRvWqHi91t9Zk/Wobjao5KMUehjWDjUjXMmLG7G8tjc=" /></div><p>
+<form action="/users/new" id="register_form" method="post"><div style="margin:0;padding:0"><input name="authenticity_token" type="hidden" value="jMFuvyPOzqsisbEpVfFyiwzRCEOdmsQJgmjVsUO0CVA=" /></div><p>
   <label>Login</label><br/>
   <input id="user_login" name="user[login]" onblur="register_manager.validate_login()" onfocus="register_manager.show_login_requirement();" size="30" type="text" />
   <a id='login_info'></a>
